@@ -1,0 +1,14 @@
+node_modules/
+.env
+dist/
+*.log
+.DS_Store
+.vscode/
+
+# PocketBase runtime artifacts
+db/pb_data/*.db
+db/pb_data/types.d.ts
+db/pocketbase
+db/CHANGELOG.md
+db/LICENSE.md
+
