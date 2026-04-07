@@ -1,4 +1,4 @@
-import { IStockMovementRepository } from "@/domain/repositories/inventory/IStockMovementRepository.js"
+import { IStockMovementRepository } from '@/domain/repositories/inventory/IStockMovementRepository.js'
 
 export const getStockMovements = async (
   movementRepo: IStockMovementRepository,

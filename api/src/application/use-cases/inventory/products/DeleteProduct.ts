@@ -1,12 +1,12 @@
-import { IProductRepository } from "@/domain/repositories/inventory/IProductStockRepository.js"
+import { IProductRepository } from '@/domain/repositories/inventory/IProductStockRepository.js'
 
 export const deleteProduct = async (
   productRepo: IProductRepository,
-  sku: string
+  id: string
 ): Promise<void> => {
-  const existing = await productRepo.findBySku(sku)
+  const existing = await productRepo.findById(id)
 
-  if (!existing) throw new Error(`No existe un producto con el SKU ${sku}`)
+  if (!existing) throw new Error(`No existe un producto con el ID ${id}`)
 
-  await productRepo.delete(sku)
+  await productRepo.delete(id)
 }

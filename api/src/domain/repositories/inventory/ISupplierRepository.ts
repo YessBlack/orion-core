@@ -1,6 +1,6 @@
 import { Supplier } from '@/domain/entities/inventory/Supplier.js'
 
-export type CreateSupplierDTO = Omit<Supplier, 'id' | 'createdAt'>
+export type CreateSupplierDTO = Omit<Supplier, 'createdAt' | 'updatedAt'>
 export type UpdateSupplierDTO = Partial<CreateSupplierDTO>
 
 export interface ISupplierRepository {

@@ -5,9 +5,9 @@ export const createProduct = async (
   productRepo: IProductRepository,
   data: CreateProductDTO
 ): Promise<Product> => {
-  const existing = await productRepo.findBySku(data.sku)
+  const existing = data.id ? await productRepo.findBySku(data.id) : null
 
-  if (existing) throw new Error(`Ya existe un producto con el SKU ${data.sku}`)
+  if (existing) throw new Error(`Ya existe un producto con el SKU ${data.id}`)
 
   return productRepo.create(data)
 }

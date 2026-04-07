@@ -1,10 +1,10 @@
-import { StockMovement } from "@/domain/entities/inventory/Movement.js"
-import { IProductRepository } from "@/domain/repositories/inventory/IProductStockRepository.js"
-import { CreateStockMovementDTO, IStockMovementRepository } from "@/domain/repositories/inventory/IStockMovementRepository.js"
-import { MovementType } from "@/domain/shared/MovementType.js"
+import { StockMovement } from '@/domain/entities/inventory/Movement.js'
+import { IProductRepository } from '@/domain/repositories/inventory/IProductStockRepository.js'
+import { CreateStockMovementDTO, IStockMovementRepository } from '@/domain/repositories/inventory/IStockMovementRepository.js'
+import { MovementType } from '@/domain/shared/MovementType.js'
 
 export const registerStockMovement = async (
-  productRepo:  IProductRepository,
+  productRepo: IProductRepository,
   movementRepo: IStockMovementRepository,
   data: CreateStockMovementDTO
 ): Promise<StockMovement> => {
@@ -13,7 +13,7 @@ export const registerStockMovement = async (
 
   const DECREASES_STOCK = new Set<MovementType>([
     MovementType.Sale,
-    MovementType.Waste,
+    MovementType.Waste
   ])
 
   if (DECREASES_STOCK.has(data.type)) {

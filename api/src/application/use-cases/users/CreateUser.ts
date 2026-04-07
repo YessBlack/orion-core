@@ -1,5 +1,5 @@
-import { User } from "@/domain/entities/users/User.js"
-import { CreateUserDTO, IUserRepository } from "@/domain/repositories/users/IUserRepository.js"
+import { User } from '@/domain/entities/users/User.js'
+import { CreateUserDTO, IUserRepository } from '@/domain/repositories/users/IUserRepository.js'
 
 export const createUser = async (
   userRepo: IUserRepository,

@@ -1,4 +1,4 @@
-import { IUserRepository, UpdateUserDTO } from "@/domain/repositories/users/IUserRepository.js";
+import { IUserRepository, UpdateUserDTO } from '@/domain/repositories/users/IUserRepository.js'
 
 export const updateUser = async (
   userRepo: IUserRepository,
@@ -7,7 +7,7 @@ export const updateUser = async (
 ) => {
   const existing = await userRepo.findById(id)
 
-  if (!existing) throw new Error(`Usuario no encontrado`)
+  if (!existing) throw new Error('Usuario no encontrado')
 
   if (data.email && data.email !== existing.email) {
     const emailTaken = await userRepo.findByEmail(data.email)

@@ -1,6 +1,6 @@
 import { Product } from '@/domain/entities/inventory/Product.js'
 
-export type CreateProductDTO = Omit<Product, 'id' | 'createdAt' | 'updatedAt'>
+export type CreateProductDTO = Omit<Product, 'createdAt' | 'updatedAt'>
 export type UpdateProductDTO = Partial<CreateProductDTO>
 
 export interface IProductRepository {
