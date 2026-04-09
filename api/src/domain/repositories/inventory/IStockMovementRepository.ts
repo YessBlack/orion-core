@@ -5,7 +5,7 @@ export type CreateStockMovementDTO = Omit<StockMovement, 'id' | 'createdAt'>
 
 export interface IStockMovementRepository {
   findById(id: string): Promise<StockMovement | null>
-  findAll(): Promise<StockMovement[]>
+  list(): Promise<StockMovement[]>
   findByProductId(productId: string): Promise<StockMovement[]>
   findByType(type: MovementType): Promise<StockMovement[]>
   findByDateRange(from: Date, to: Date): Promise<StockMovement[]>

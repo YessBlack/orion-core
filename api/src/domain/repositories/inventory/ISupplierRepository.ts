@@ -5,8 +5,8 @@ export type UpdateSupplierDTO = Partial<CreateSupplierDTO>
 
 export interface ISupplierRepository {
   findById(id: string): Promise<Supplier | null>
-  findAll(): Promise<Supplier[]>
+  list(): Promise<Supplier[]>
   create(data: CreateSupplierDTO): Promise<Supplier>
   update(id: string, data: UpdateSupplierDTO): Promise<Supplier>
-  delete(id: string): Promise<void>
+  remove(id: string): Promise<void>
 }
