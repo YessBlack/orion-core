@@ -9,6 +9,15 @@ import { mapError } from '../../shared/error.js'
 import { writeError, writeJSON } from '../../shared/response.js'
 import { validateUserCreatePayload } from '../../validators/user/user-create.validator.js'
 import { validateUserUpdatePayload } from '../../validators/user/user-update.validator.js'
+import { loginUserUseCase } from '../../../../application/use-cases/users/loginUserUseCase.js'
+import { jwtService } from '@/infrastructure/services/jwt.service.js'
+import { registerUserUseCase } from '@/application/use-cases/users/registerUserUseCase.js'
+import { loginSchema, registerSchema, userIdParamSchema } from '../../validators/auth/auth.validator.js'
+import { ZodIssue } from 'zod'
+
+const joinIssueMessages = (issues: ZodIssue[]) => {
+  return issues.map((issue) => issue.message).join('; ')
+}
 
 export const listUsersHandler = async (req: Request, res: Response) => {
   try {
@@ -42,25 +51,15 @@ export const createUserHandler = async (req: Request, res: Response) => {
 
 export const updateUserHandler = async (req: Request, res: Response) => {
   try {
-    const rawId = req.params.id
-
-    if (typeof rawId !== 'string') {
+    const idResult = userIdParamSchema.safeParse(req.params)
+    if (!idResult.success) {
       return writeError(res, {
         code: ErrorCode.BadRequest,
-        message: 'User id is required and must be a string',
+        message: joinIssueMessages(idResult.error.issues),
         status: 400
       })
     }
-
-    const id = rawId.trim()
-
-    if (!id) {
-      return writeError(res, {
-        code: ErrorCode.BadRequest,
-        message: 'User id cannot be empty',
-        status: 400
-      })
-    }
+    const id = idResult.data.id
 
     const result = validateUserUpdatePayload(req.body)
 
@@ -82,28 +81,67 @@ export const updateUserHandler = async (req: Request, res: Response) => {
 
 export const deleteUserHandler = async (req: Request, res: Response) => {
   try {
-    const rawId = req.params.id
-
-    if (typeof rawId !== 'string') {
+    const idResult = userIdParamSchema.safeParse(req.params)
+    if (!idResult.success) {
       return writeError(res, {
         code: ErrorCode.BadRequest,
-        message: 'User id is required and must be a string',
+        message: joinIssueMessages(idResult.error.issues),
         status: 400
       })
     }
-
-    const id = rawId.trim()
-
-    if (!id) {
-      return writeError(res, {
-        code: ErrorCode.BadRequest,
-        message: 'User id cannot be empty',
-        status: 400
-      })
-    }
+    const id = idResult.data.id
 
     await deleteUserUseCase(userRepository, id)
     return writeJSON(res, 200, { message: 'User deleted successfully' })
+  } catch (error) {
+    const appError = mapError(error)
+    return writeError(res, appError)
+  }
+}
+
+export const loginHandler = async (req: Request, res: Response) => {
+  try {
+    const bodyResult = loginSchema.safeParse(req.body)
+    if (!bodyResult.success) {
+      return writeError(res, {
+        code: ErrorCode.BadRequest,
+        message: joinIssueMessages(bodyResult.error.issues),
+        status: 400
+      })
+    }
+
+    const { email, password } = bodyResult.data
+
+    const result = await loginUserUseCase(userRepository, jwtService, { email, password })
+
+    return writeJSON(res, 200, result)
+  } catch (error) {
+    const appError = mapError(error)
+    return writeError(res, appError)
+  }
+}
+
+export const registerHandler = async (req: Request, res: Response) => {
+  try {
+    const bodyResult = registerSchema.safeParse(req.body)
+    if (!bodyResult.success) {
+      return writeError(res, {
+        code: ErrorCode.BadRequest,
+        message: joinIssueMessages(bodyResult.error.issues),
+        status: 400
+      })
+    }
+
+    const { name, email, password, passwordConfirm } = bodyResult.data
+
+    const result = await registerUserUseCase(userRepository, {
+      name,
+      email,
+      password,
+      passwordConfirm
+    })
+
+    return writeJSON(res, 201, result)
   } catch (error) {
     const appError = mapError(error)
     return writeError(res, appError)

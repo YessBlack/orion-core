@@ -1,6 +1,8 @@
-import { UserRole } from '@/domain/entities/users/User.js'
-import { AppModule, PermissionLevel, UserPermission } from '@/domain/entities/users/UserPermission.js'
+import { AppModule, UserPermission } from '@/domain/entities/users/UserPermission.js'
+import { AccessLevel } from '@/domain/shared/AccessLevel.js'
 import { CreateUserDTO } from '@/domain/repositories/users/IUserRepository.js'
+import { UserRole } from '@/domain/entities/users/UserRole.js'
+import { z } from 'zod'
 
 type ValidationSuccess<T> = {
   valid: true
@@ -16,94 +18,45 @@ type ValidationFailure = {
 export type UserCreateValidationResult =
   ValidationSuccess<CreateUserDTO> | ValidationFailure
 
-const USER_ROLES = new Set<string>(Object.values(UserRole))
-const MODULES = new Set<string>(Object.values(AppModule))
-const LEVELS = new Set<string>(Object.values(PermissionLevel))
+const permissionSchema = z.object({
+  module: z.nativeEnum(AppModule),
+  level: z.nativeEnum(AccessLevel)
+})
 
-const isNonEmptyString = (value: unknown): value is string => {
-  return typeof value === 'string' && value.trim().length > 0
-}
-
-const isBoolean = (value: unknown): value is boolean => {
-  return typeof value === 'boolean'
-}
-
-const isEmail = (value: unknown): value is string => {
-  if (typeof value !== 'string') return false
-
-  const email = value.trim()
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-}
-
-const isUserPermission = (value: unknown): value is UserPermission => {
-  if (!value || typeof value !== 'object') return false
-
-  const permission = value as Record<string, unknown>
-
-  return (
-    typeof permission.module === 'string' &&
-    typeof permission.level === 'string' &&
-    MODULES.has(permission.module) &&
-    LEVELS.has(permission.level)
-  )
-}
-
-const isPermissionList = (value: unknown): value is UserPermission[] => {
-  return Array.isArray(value) && value.every(isUserPermission)
-}
+const createUserSchema = z.object({
+  name: z.string().trim().min(1, 'name is required and must be a non-empty string'),
+  email: z.string().trim().email('email is required and must be a valid email'),
+  role: z.nativeEnum(UserRole, {
+    errorMap: () => ({ message: `role is required and must be one of: ${Object.values(UserRole).join(', ')}` })
+  }),
+  permissions: z.array(permissionSchema, {
+    errorMap: () => ({ message: 'permissions is required and must be a valid permission list' })
+  }),
+  isDefault: z.boolean({ errorMap: () => ({ message: 'isDefault is required and must be a boolean' }) }),
+  isActive: z.boolean({ errorMap: () => ({ message: 'isActive is required and must be a boolean' }) })
+})
 
 export const validateUserCreatePayload = (
   payload: unknown
 ): UserCreateValidationResult => {
-  const errors: string[] = []
+  const result = createUserSchema.safeParse(payload)
 
-  if (!payload || typeof payload !== 'object') {
+  if (!result.success) {
     return {
       valid: false,
-      errors: ['payload must be an object']
+      errors: result.error.issues.map((issue) => issue.message)
     }
   }
 
-  const body = payload as Record<string, unknown>
-
-  if (!isNonEmptyString(body.name)) {
-    errors.push('name is required and must be a non-empty string')
-  }
-
-  if (!isEmail(body.email)) {
-    errors.push('email is required and must be a valid email')
-  }
-
-  if (typeof body.role !== 'string' || !USER_ROLES.has(body.role)) {
-    errors.push(`role is required and must be one of: ${Object.values(UserRole).join(', ')}`)
-  }
-
-  if (!isPermissionList(body.permissions)) {
-    errors.push('permissions is required and must be a valid permission list')
-  }
-
-  if (!isBoolean(body.isDefault)) {
-    errors.push('isDefault is required and must be a boolean')
-  }
-
-  if (!isBoolean(body.isActive)) {
-    errors.push('isActive is required and must be a boolean')
-  }
-
-  if (errors.length > 0) {
-    return {
-      valid: false,
-      errors
-    }
-  }
+  const body = result.data
 
   const value: CreateUserDTO = {
-    name: body.name as string,
-    email: (body.email as string).trim().toLowerCase(),
-    role: body.role as UserRole,
+    name: body.name,
+    email: body.email.toLowerCase(),
+    role: body.role,
     permissions: body.permissions as UserPermission[],
-    isDefault: body.isDefault as boolean,
-    isActive: body.isActive as boolean
+    isDefault: body.isDefault,
+    isActive: body.isActive
   }
 
   return {
