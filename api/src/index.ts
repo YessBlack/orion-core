@@ -1,6 +1,7 @@
 import cors from 'cors'
 import dotenv from 'dotenv'
 import express from 'express'
+import { ensureDefaultApiUser } from '@/infrastructure/bootstrap/ensureDefaultApiUser.js'
 import { rootRouter } from '@/presentation/http/routes/index.js'
 import { ErrorCode } from './presentation/http/shared/constants.js'
 
@@ -35,6 +36,12 @@ app.use((_req, res) => {
   })
 })
 
-app.listen(PORT, () => {
-  console.log(`API listening on http://localhost:${PORT}`)
-})
+const bootstrap = async () => {
+  await ensureDefaultApiUser()
+
+  app.listen(PORT, () => {
+    console.log(`API listening on http://localhost:${PORT}`)
+  })
+}
+
+void bootstrap()

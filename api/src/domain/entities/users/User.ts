@@ -1,10 +1,6 @@
 import { UserPermission } from './UserPermission.js'
-
-export enum UserRole {
-  Admin = 'ADMIN',
-  Seller = 'SELLER',
-  Warehouse = 'WAREHOUSE',
-}
+import { UserRole } from './UserRole.js'
+import { AccessLevel } from '@/domain/shared/AccessLevel.js'
 
 export interface User {
   id?: string
@@ -12,6 +8,7 @@ export interface User {
   email: string
   role: UserRole
   permissions: UserPermission[]
+  apiAccessLevel?: AccessLevel
   isDefault: boolean
   isActive: boolean
   createdAt?: Date

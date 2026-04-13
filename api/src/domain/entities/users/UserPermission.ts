@@ -1,3 +1,5 @@
+import { AccessLevel } from '../../shared/AccessLevel.js'
+
 export enum AppModule {
   Dashboard = 'DASHBOARD',
   Inventory = 'INVENTORY',
@@ -6,14 +8,7 @@ export enum AppModule {
   Users = 'USERS',
 }
 
-export enum PermissionLevel {
-  None = 'NONE',
-  Read = 'READ',
-  Write = 'WRITE',
-  Full = 'FULL',
-}
-
 export interface UserPermission {
   module: AppModule
-  level: PermissionLevel
+  level: AccessLevel
 }
