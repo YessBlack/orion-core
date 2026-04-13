@@ -6,7 +6,7 @@ dist/
 .vscode/
 
 # PocketBase runtime artifacts
-db/pb_data/*.db
+db/pb_data/
 db/pb_data/types.d.ts
 db/pocketbase
 db/CHANGELOG.md
