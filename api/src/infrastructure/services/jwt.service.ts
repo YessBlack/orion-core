@@ -2,6 +2,7 @@ import { TokenService } from '@/application/services/token.service.js'
 import { AppErrorCode } from '@/application/shared/error-codes.js'
 import { UserPermission } from '@/domain/entities/users/UserPermission.js'
 import { UserRole } from '@/domain/entities/users/UserRole.js'
+import { randomUUID } from 'node:crypto'
 import jwt from 'jsonwebtoken'
 
 const ACCESS_SECRET = process.env.JWT_SECRET || 'supersecret'
@@ -33,7 +34,8 @@ export const jwtService: TokenService = {
         sub: payload.userId,
         role: payload.role,
         permissions: payload.permissions,
-        tokenType: 'refresh'
+        tokenType: 'refresh',
+        jti: randomUUID()
       },
       REFRESH_SECRET,
       { expiresIn: REFRESH_TOKEN_TTL_SECONDS }
