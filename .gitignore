@@ -4,6 +4,7 @@ dist/
 *.log
 .DS_Store
 .vscode/
+.env.test
 
 # PocketBase runtime artifacts
 db/pb_data/
