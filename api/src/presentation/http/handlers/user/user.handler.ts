@@ -10,13 +10,20 @@ import { writeError, writeJSON } from '../../shared/response.js'
 import { validateUserCreatePayload } from '../../validators/user/user-create.validator.js'
 import { validateUserUpdatePayload } from '../../validators/user/user-update.validator.js'
 import { loginUserUseCase } from '../../../../application/use-cases/users/loginUserUseCase.js'
+import { refreshSessionUseCase } from '../../../../application/use-cases/users/refreshSessionUseCase.js'
+import { logoutUserUseCase } from '../../../../application/use-cases/users/logoutUserUseCase.js'
 import { jwtService } from '@/infrastructure/services/jwt.service.js'
+import { hashRefreshToken } from '@/infrastructure/services/refresh-token-hash.service.js'
+import { sessionRepository } from '@/infrastructure/repositories/user/user.session.repository.js'
 import { registerUserUseCase } from '@/application/use-cases/users/registerUserUseCase.js'
-import { loginSchema, registerSchema, userIdParamSchema } from '../../validators/auth/auth.validator.js'
+import { loginSchema, logoutSchema, refreshSchema, registerSchema, userIdParamSchema } from '../../validators/auth/auth.validator.js'
 import { ZodIssue } from 'zod'
 
 const joinIssueMessages = (issues: ZodIssue[]) => {
-  return issues.map((issue) => issue.message).join('; ')
+  return issues.map((issue) => {
+    const path = issue.path.length > 0 ? issue.path.join('.') : 'payload'
+    return `${path}: ${issue.message}`
+  }).join('; ')
 }
 
 export const listUsersHandler = async (req: Request, res: Response) => {
@@ -112,7 +119,13 @@ export const loginHandler = async (req: Request, res: Response) => {
 
     const { email, password } = bodyResult.data
 
-    const result = await loginUserUseCase(userRepository, jwtService, { email, password })
+    const result = await loginUserUseCase(
+      userRepository,
+      sessionRepository,
+      jwtService,
+      hashRefreshToken,
+      { email, password }
+    )
 
     return writeJSON(res, 200, result)
   } catch (error) {
@@ -142,6 +155,56 @@ export const registerHandler = async (req: Request, res: Response) => {
     })
 
     return writeJSON(res, 201, result)
+  } catch (error) {
+    const appError = mapError(error)
+    return writeError(res, appError)
+  }
+}
+
+export const refreshHandler = async (req: Request, res: Response) => {
+  try {
+    const bodyResult = refreshSchema.safeParse(req.body)
+    if (!bodyResult.success) {
+      return writeError(res, {
+        code: ErrorCode.BadRequest,
+        message: joinIssueMessages(bodyResult.error.issues),
+        status: 400
+      })
+    }
+
+    const result = await refreshSessionUseCase(
+      sessionRepository,
+      jwtService,
+      hashRefreshToken,
+      { refreshToken: bodyResult.data.refreshToken }
+    )
+
+    return writeJSON(res, 200, result)
+  } catch (error) {
+    const appError = mapError(error)
+    return writeError(res, appError)
+  }
+}
+
+export const logoutHandler = async (req: Request, res: Response) => {
+  try {
+    const bodyResult = logoutSchema.safeParse(req.body)
+    if (!bodyResult.success) {
+      return writeError(res, {
+        code: ErrorCode.BadRequest,
+        message: joinIssueMessages(bodyResult.error.issues),
+        status: 400
+      })
+    }
+
+    const result = await logoutUserUseCase(
+      sessionRepository,
+      jwtService,
+      hashRefreshToken,
+      { refreshToken: bodyResult.data.refreshToken }
+    )
+
+    return writeJSON(res, 200, result)
   } catch (error) {
     const appError = mapError(error)
     return writeError(res, appError)

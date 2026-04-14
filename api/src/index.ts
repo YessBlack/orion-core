@@ -1,7 +1,7 @@
 import cors from 'cors'
 import dotenv from 'dotenv'
 import express from 'express'
-import { ensureDefaultApiUser } from '@/infrastructure/bootstrap/ensureDefaultApiUser.js'
+import { authenticateDatabase } from '@/infrastructure/database/database.js'
 import { rootRouter } from '@/presentation/http/routes/index.js'
 import { ErrorCode } from './presentation/http/shared/constants.js'
 
@@ -37,11 +37,14 @@ app.use((_req, res) => {
 })
 
 const bootstrap = async () => {
-  await ensureDefaultApiUser()
+  await authenticateDatabase()
 
   app.listen(PORT, () => {
     console.log(`API listening on http://localhost:${PORT}`)
   })
 }
 
-void bootstrap()
+bootstrap().catch((error) => {
+  console.error('Failed to bootstrap API', error)
+  process.exit(1)
+})

@@ -4,7 +4,10 @@ import { AppErrorCode } from '@/application/shared/error-codes.js'
 
 export const mapError = (error: unknown): AppError => {
   if (error instanceof Error) {
-    if (error.message === AppErrorCode.InvalidCredentials || error.message === AppErrorCode.InvalidToken) {
+    if (
+      error.message === AppErrorCode.InvalidCredentials ||
+      error.message === AppErrorCode.InvalidToken
+    ) {
       return {
         code: ErrorCode.Unauthorized,
         message: error.message,

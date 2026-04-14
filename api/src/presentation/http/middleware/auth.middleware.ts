@@ -11,7 +11,6 @@ declare global {
       auth?: {
         userId: string
         role: UserRole
-        apiAccessLevel: AccessLevel
         permissions: Array<{ module: AppModule, level: AccessLevel }>
       }
     }
@@ -33,7 +32,7 @@ export const createAuthMiddleware = (tokenService: TokenService) => {
     const token = authHeader.split(' ')[1]
 
     try {
-      const auth = tokenService.validate(token)
+      const auth = tokenService.validateAccessToken(token)
 
       req.auth = auth
 
@@ -52,28 +51,6 @@ export const requireRoles = (...roles: UserRole[]) => {
 
     if (!roles.includes(req.auth.role)) {
       return res.status(403).json({ message: 'Forbidden' })
-    }
-
-    next()
-  }
-}
-
-const API_ACCESS_LEVELS = new Set<AccessLevel>([
-  AccessLevel.Read,
-  AccessLevel.Write,
-  AccessLevel.Admin
-])
-
-export const requireApiAccess = () => {
-  return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.auth) {
-      return res.status(401).json({ message: 'Unauthorized' })
-    }
-
-    const hasApiAccess = API_ACCESS_LEVELS.has(req.auth.apiAccessLevel)
-
-    if (!hasApiAccess) {
-      return res.status(403).json({ message: 'API access required' })
     }
 
     next()
