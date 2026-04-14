@@ -1,7 +1,7 @@
 import { TokenService } from '@/application/services/token.service.js'
 import { AppErrorCode } from '@/application/shared/error-codes.js'
-import { AccessLevel } from '@/domain/shared/AccessLevel.js'
 import { IUserRepository } from '@/domain/repositories/users/IUserRepository.js'
+import { ISessionRepository } from '@/domain/repositories/users/ISessionRepository.js'
 
 type LoginInput = {
   email: string
@@ -10,7 +10,9 @@ type LoginInput = {
 
 export const loginUserUseCase = async (
   userRepo: IUserRepository,
+  sessionRepo: ISessionRepository,
   tokenService: TokenService,
+  hashRefreshToken: (token: string) => Promise<string>,
   input: LoginInput
 ) => {
   const email = input.email.trim().toLowerCase()
@@ -26,21 +28,41 @@ export const loginUserUseCase = async (
     throw new Error(AppErrorCode.InvalidCredentials)
   }
 
-  const token = tokenService.generate({
+  const accessToken = tokenService.generateAccessToken({
     userId: user.id,
     role: user.role,
-    apiAccessLevel: user.apiAccessLevel ?? AccessLevel.None,
     permissions: user.permissions
   })
 
-  const expiresIn = tokenService.getAccessTokenTtlSeconds()
+  const refreshToken = tokenService.generateRefreshToken({
+    userId: user.id,
+    role: user.role,
+    permissions: user.permissions
+  })
+
+  const accessTokenExpiresIn = tokenService.getAccessTokenTtlSeconds()
+  const refreshTokenHash = await hashRefreshToken(refreshToken)
+  const refreshTokenExpiresIn = tokenService.getRefreshTokenTtlSeconds()
+  const refreshExpiresAt = new Date(Date.now() + (refreshTokenExpiresIn * 1000))
+
+  await sessionRepo.create({
+    userId: user.id,
+    refreshTokenHash,
+    expiresAt: refreshExpiresAt,
+    revokedAt: null
+  })
 
   return {
-    accessToken: token,
+    accessToken,
+    refreshToken,
     tokenType: 'Bearer',
-    expiresIn,
-    expiresAt: new Date(Date.now() + (expiresIn * 1000)).toISOString(),
+    expiresIn: accessTokenExpiresIn,
+    expiresAt: new Date(Date.now() + (accessTokenExpiresIn * 1000)).toISOString(),
+    refreshTokenExpiresIn,
+    refreshTokenExpiresAt: new Date(Date.now() + (refreshTokenExpiresIn * 1000)).toISOString(),
     user: {
+      id: user.id,
+      role: user.role,
       name: user.name,
       email: user.email
     }

@@ -1,8 +1,8 @@
 import { CreateUserDTO, IUserRepository, RegisterUserDTO, UpdateUserDTO } from '@/domain/repositories/users/IUserRepository.js'
-import { pb } from '../../database/database.js'
+import { POCKETBASE_URL, pb } from '../../database/database.js'
 import { mapToUser } from '../../mappers/user/user.mapper.js'
 import { UserRole } from '@/domain/entities/users/UserRole.js'
-import { AccessLevel } from '@/domain/shared/AccessLevel.js'
+import PocketBase from 'pocketbase'
 
 const USER_COLLECTION = 'users'
 
@@ -34,7 +34,11 @@ const findByEmail = async (email: string) => {
 
 const authenticate = async (email: string, password: string) => {
   try {
-    const authResult = await pb.collection(USER_COLLECTION).authWithPassword(email, password)
+    // Use a dedicated client to avoid replacing the shared admin authStore.
+    const authClient = new PocketBase(POCKETBASE_URL)
+    const authResult = await authClient
+      .collection(USER_COLLECTION)
+      .authWithPassword(email, password)
     return mapToUser(authResult.record)
   } catch {
     return null
@@ -61,8 +65,7 @@ const register = async (data: RegisterUserDTO) => {
       role: UserRole.Seller,
       permissions: [],
       isDefault: false,
-      isActive: true,
-      apiAccessLevel: AccessLevel.None
+      isActive: true
     })
 
     return mapToUser(record)
