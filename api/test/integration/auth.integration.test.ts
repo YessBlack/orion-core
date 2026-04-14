@@ -83,4 +83,51 @@ describe('Auth Integration', () => {
 
     expect(res.status).toBe(401)
   })
+
+  it('register should create new user', async () => {
+    const randomSuffix = Date.now()
+    const email = `test.user.${randomSuffix}@orion.local`
+    const password = 'password123'
+
+    const res = await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        name: `Test User ${randomSuffix}`,
+        email,
+        password,
+        passwordConfirm: password
+      })
+
+    expect(res.status).toBe(201)
+    expect(res.body?.data?.id).toBeDefined()
+    expect(res.body?.data?.email).toBe(email)
+  })
+
+  it('register with existing email should fail', async () => {
+    const randomSuffix = Date.now()
+    const email = `existing.user.${randomSuffix}@orion.local`
+    const password = 'password123'
+
+    const res1 = await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        name: 'Existing User',
+        email,
+        password,
+        passwordConfirm: password
+      })
+
+    expect(res1.status).toBe(201)
+
+    const res2 = await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        name: 'Existing User 2',
+        email,
+        password,
+        passwordConfirm: password
+      })
+
+    expect(res2.status).toBe(409)
+  })
 })
