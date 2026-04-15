@@ -5,7 +5,6 @@ import {
   loginHandler,
   logoutHandler,
   refreshHandler,
-  registerHandler,
   updateUserHandler,
   deleteUserHandler
 } from '../../handlers/user/user.handler.js'
@@ -18,7 +17,6 @@ const authMiddleware = createAuthMiddleware(jwtService)
 
 userRoutes.get('/users', authMiddleware, requireRoles(UserRole.Admin), listUsersHandler)
 userRoutes.post('/users', authMiddleware, requireRoles(UserRole.Admin), createUserHandler)
-userRoutes.post('/auth/register', registerHandler)
 userRoutes.post('/auth/login', loginHandler)
 userRoutes.post('/auth/refresh', refreshHandler)
 userRoutes.post('/auth/logout', logoutHandler)
