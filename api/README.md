@@ -134,10 +134,12 @@ Comportamiento:
 
 ## Endpoints de Auth
 
-- `POST /api/v1/auth/register`
 - `POST /api/v1/auth/login`
 - `POST /api/v1/auth/refresh`
 - `POST /api/v1/auth/logout`
+
+Nota: no existe registro publico de usuarios. La creacion de usuarios se realiza
+desde rutas administrativas protegidas.
 
 ## Pruebas Manuales (Postman)
 

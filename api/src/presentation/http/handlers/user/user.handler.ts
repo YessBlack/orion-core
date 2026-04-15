@@ -15,8 +15,7 @@ import { logoutUserUseCase } from '../../../../application/use-cases/users/logou
 import { jwtService } from '@/infrastructure/services/jwt.service.js'
 import { hashRefreshToken } from '@/infrastructure/services/refresh-token-hash.service.js'
 import { sessionRepository } from '@/infrastructure/repositories/user/user.session.repository.js'
-import { registerUserUseCase } from '@/application/use-cases/users/registerUserUseCase.js'
-import { loginSchema, logoutSchema, refreshSchema, registerSchema, userIdParamSchema } from '../../validators/auth/auth.validator.js'
+import { loginSchema, logoutSchema, refreshSchema, userIdParamSchema } from '../../validators/auth/auth.validator.js'
 import { ZodIssue } from 'zod'
 
 const joinIssueMessages = (issues: ZodIssue[]) => {
@@ -128,33 +127,6 @@ export const loginHandler = async (req: Request, res: Response) => {
     )
 
     return writeJSON(res, 200, result)
-  } catch (error) {
-    const appError = mapError(error)
-    return writeError(res, appError)
-  }
-}
-
-export const registerHandler = async (req: Request, res: Response) => {
-  try {
-    const bodyResult = registerSchema.safeParse(req.body)
-    if (!bodyResult.success) {
-      return writeError(res, {
-        code: ErrorCode.BadRequest,
-        message: joinIssueMessages(bodyResult.error.issues),
-        status: 400
-      })
-    }
-
-    const { name, email, password, passwordConfirm } = bodyResult.data
-
-    const result = await registerUserUseCase(userRepository, {
-      name,
-      email,
-      password,
-      passwordConfirm
-    })
-
-    return writeJSON(res, 201, result)
   } catch (error) {
     const appError = mapError(error)
     return writeError(res, appError)
