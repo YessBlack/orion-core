@@ -1,0 +1,137 @@
+name: API CI
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "api/**"
+      - "db/pb_migrations/**"
+      - ".github/workflows/api-ci.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "api/**"
+      - "db/pb_migrations/**"
+      - ".github/workflows/api-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  api-ci:
+    name: API Lint And Integration Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+    env:
+      NODE_ENV: test
+      CORS_ALLOWED_ORIGINS: http://localhost:5173
+      POCKETBASE_URL: http://127.0.0.1:8090
+      POCKETBASE_SUPERUSER_EMAIL: ci-superuser@orion.local
+      POCKETBASE_SUPERUSER_PASSWORD: ci-superuser-password-123
+      TEST_USER_EMAIL: admin-api@orion.local
+      TEST_USER_PASSWORD: 123456789
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate CI auth secrets and write .env.test
+        shell: bash
+        run: |
+          jwt_secret="$(openssl rand -base64 64)"
+          jwt_refresh_secret="$(openssl rand -base64 64)"
+          refresh_token_pepper="$(openssl rand -base64 64)"
+
+          echo "::add-mask::$jwt_secret"
+          echo "::add-mask::$jwt_refresh_secret"
+          echo "::add-mask::$refresh_token_pepper"
+
+          cat > .env.test <<EOF
+          NODE_ENV=${NODE_ENV}
+          CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
+          POCKETBASE_URL=${POCKETBASE_URL}
+          POCKETBASE_SUPERUSER_EMAIL=${POCKETBASE_SUPERUSER_EMAIL}
+          POCKETBASE_SUPERUSER_PASSWORD=${POCKETBASE_SUPERUSER_PASSWORD}
+          TEST_USER_EMAIL=${TEST_USER_EMAIL}
+          TEST_USER_PASSWORD=${TEST_USER_PASSWORD}
+          JWT_SECRET=${jwt_secret}
+          JWT_REFRESH_SECRET=${jwt_refresh_secret}
+          REFRESH_TOKEN_PEPPER=${refresh_token_pepper}
+          EOF
+
+      - name: Lint API
+        run: npm run lint
+
+      - name: Start PocketBase
+        run: |
+          PB_VERSION="0.36.9"
+          PB_SHA256="514441ad69eeba4e5da6e4728dae7483c6e5328b109fed9c67f66909a006fb5a"
+
+          curl -fL -o pb.zip "https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSION}/pocketbase_${PB_VERSION}_linux_amd64.zip"
+          echo "${PB_SHA256}  pb.zip" | sha256sum -c -
+          unzip pb.zip -d pb
+
+          rm -rf pb_migrations
+          cp -R ../db/pb_migrations ./pb_migrations
+
+          ./pb/pocketbase --dir=./pb_data superuser upsert "${POCKETBASE_SUPERUSER_EMAIL}" "${POCKETBASE_SUPERUSER_PASSWORD}"
+          ./pb/pocketbase serve --http=127.0.0.1:8090 --dir=./pb_data > pb.log 2>&1 &
+          for i in {1..30}; do curl -fsS http://127.0.0.1:8090/api/health && break || sleep 1; done
+
+      - name: Seed test user
+        run: |
+          node --input-type=module <<'EOF'
+          import PocketBase from 'pocketbase'
+
+          const pb = new PocketBase(process.env.POCKETBASE_URL)
+          await pb.collection('_superusers').authWithPassword(
+            process.env.POCKETBASE_SUPERUSER_EMAIL,
+            process.env.POCKETBASE_SUPERUSER_PASSWORD
+          )
+
+          const email = process.env.TEST_USER_EMAIL
+          const password = process.env.TEST_USER_PASSWORD
+
+          let exists = false
+          try {
+            await pb.collection('users').getFirstListItem(`email="${email}"`)
+            exists = true
+          } catch {
+            exists = false
+          }
+
+          if (!exists) {
+            await pb.collection('users').create({
+              name: 'CI Test Admin',
+              email,
+              password,
+              passwordConfirm: password,
+              role: 'ADMIN',
+              permissions: [],
+              isDefault: false,
+              isActive: true
+            })
+          }
+          EOF
+
+      - name: Run API integration tests
+        run: npm run test:integration
+
+      - name: Print PocketBase logs on failure
+        if: failure()
+        run: |
+          echo "--- PocketBase log tail ---"
+          tail -n 200 pb.log || true
