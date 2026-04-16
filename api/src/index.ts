@@ -1,8 +1,6 @@
-import dotenv from 'dotenv'
+import 'dotenv/config'
 import { authenticateDatabase } from '@/infrastructure/database/database.js'
 import app from './app.js'
-
-dotenv.config()
 
 const PORT = Number(process.env.PORT ?? 3000)
 

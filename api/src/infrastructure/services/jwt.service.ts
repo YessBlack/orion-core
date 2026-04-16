@@ -5,13 +5,38 @@ import { UserRole } from '@/domain/entities/users/UserRole.js'
 import { randomUUID } from 'node:crypto'
 import jwt from 'jsonwebtoken'
 
-const ACCESS_SECRET = process.env.JWT_SECRET || 'supersecret'
-const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || ACCESS_SECRET
-const ACCESS_TOKEN_TTL_SECONDS = Number(
-  process.env.JWT_ACCESS_TOKEN_TTL_SECONDS ?? 60 * 60 * 2
+const readRequiredEnv = (name: string): string => {
+  const value = process.env[name]?.trim()
+  if (!value) {
+    throw new Error('Missing required environment variable: ' + name)
+  }
+  return value
+}
+
+const readPositiveIntEnv = (name: string, defaultValue: number): number => {
+  const raw = process.env[name]
+  if (!raw) return defaultValue
+  const parsed = Number(raw)
+  if (!Number.isFinite(parsed) || parsed <= 0 || !Number.isInteger(parsed)) {
+    throw new Error('Invalid environment variable ' + name + ': must be a positive integer')
+  }
+  return parsed
+}
+
+const ACCESS_SECRET = readRequiredEnv('JWT_SECRET')
+const REFRESH_SECRET = readRequiredEnv('JWT_REFRESH_SECRET')
+
+if (ACCESS_SECRET === REFRESH_SECRET) {
+  throw new Error('JWT_SECRET and JWT_REFRESH_SECRET must be different')
+}
+
+const ACCESS_TOKEN_TTL_SECONDS = readPositiveIntEnv(
+  'JWT_ACCESS_TOKEN_TTL_SECONDS',
+  60 * 60 * 2
 )
-const REFRESH_TOKEN_TTL_SECONDS = Number(
-  process.env.JWT_REFRESH_TOKEN_TTL_SECONDS ?? 60 * 60 * 24 * 7
+const REFRESH_TOKEN_TTL_SECONDS = readPositiveIntEnv(
+  'JWT_REFRESH_TOKEN_TTL_SECONDS',
+  60 * 60 * 24 * 7
 )
 
 export const jwtService: TokenService = {
