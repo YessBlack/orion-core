@@ -6,12 +6,14 @@ on:
       - main
     paths:
       - "api/**"
+      - "db/pb_migrations/**"
       - ".github/workflows/api-ci.yml"
   push:
     branches:
       - main
     paths:
       - "api/**"
+      - "db/pb_migrations/**"
       - ".github/workflows/api-ci.yml"
 
 permissions:
@@ -28,10 +30,10 @@ jobs:
       NODE_ENV: test
       CORS_ALLOWED_ORIGINS: http://localhost:5173
       POCKETBASE_URL: http://127.0.0.1:8090
-      POCKETBASE_SUPERUSER_EMAIL: ${{ secrets.POCKETBASE_SUPERUSER_EMAIL }}
-      POCKETBASE_SUPERUSER_PASSWORD: ${{ secrets.POCKETBASE_SUPERUSER_PASSWORD }}
-      TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
-      TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+      POCKETBASE_SUPERUSER_EMAIL: ci-superuser@orion.local
+      POCKETBASE_SUPERUSER_PASSWORD: ci-superuser-password-123
+      TEST_USER_EMAIL: admin-api@orion.local
+      TEST_USER_PASSWORD: 123456789
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -73,18 +75,7 @@ jobs:
       - name: Lint API
         run: npm run lint
 
-      - name: Check integration test secrets
-        id: api-secrets
-        shell: bash
-        run: |
-          if [ -n "${POCKETBASE_SUPERUSER_EMAIL}" ] && [ -n "${POCKETBASE_SUPERUSER_PASSWORD}" ] && [ -n "${TEST_USER_EMAIL}" ] && [ -n "${TEST_USER_PASSWORD}" ]; then
-            echo "has_secrets=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_secrets=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Start PocketBase
-        if: steps.api-secrets.outputs.has_secrets == 'true'
         run: |
           PB_VERSION="0.36.9"
           PB_SHA256="514441ad69eeba4e5da6e4728dae7483c6e5328b109fed9c67f66909a006fb5a"
@@ -92,15 +83,55 @@ jobs:
           curl -fL -o pb.zip "https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSION}/pocketbase_${PB_VERSION}_linux_amd64.zip"
           echo "${PB_SHA256}  pb.zip" | sha256sum -c -
           unzip pb.zip -d pb
+
+          rm -rf pb_migrations
+          cp -R ../db/pb_migrations ./pb_migrations
+
+          ./pb/pocketbase --dir=./pb_data superuser upsert "${POCKETBASE_SUPERUSER_EMAIL}" "${POCKETBASE_SUPERUSER_PASSWORD}"
           ./pb/pocketbase serve --http=127.0.0.1:8090 --dir=./pb_data > pb.log 2>&1 &
           for i in {1..30}; do curl -fsS http://127.0.0.1:8090/api/health && break || sleep 1; done
 
+      - name: Seed test user
+        run: |
+          node --input-type=module <<'EOF'
+          import PocketBase from 'pocketbase'
+
+          const pb = new PocketBase(process.env.POCKETBASE_URL)
+          await pb.collection('_superusers').authWithPassword(
+            process.env.POCKETBASE_SUPERUSER_EMAIL,
+            process.env.POCKETBASE_SUPERUSER_PASSWORD
+          )
+
+          const email = process.env.TEST_USER_EMAIL
+          const password = process.env.TEST_USER_PASSWORD
+
+          let exists = false
+          try {
+            await pb.collection('users').getFirstListItem(`email="${email}"`)
+            exists = true
+          } catch {
+            exists = false
+          }
+
+          if (!exists) {
+            await pb.collection('users').create({
+              name: 'CI Test Admin',
+              email,
+              password,
+              passwordConfirm: password,
+              role: 'ADMIN',
+              permissions: [],
+              isDefault: false,
+              isActive: true
+            })
+          }
+          EOF
+
       - name: Run API integration tests
-        if: steps.api-secrets.outputs.has_secrets == 'true'
         run: npm run test:integration
 
-      - name: Warn missing API test secrets
-        if: steps.api-secrets.outputs.has_secrets != 'true'
+      - name: Print PocketBase logs on failure
+        if: failure()
         run: |
-          echo "::warning::API integration tests were skipped because required secrets are missing."
-          echo "::warning::Set POCKETBASE_SUPERUSER_EMAIL, POCKETBASE_SUPERUSER_PASSWORD, TEST_USER_EMAIL and TEST_USER_PASSWORD in repository secrets."
+          echo "--- PocketBase log tail ---"
+          tail -n 200 pb.log || true
