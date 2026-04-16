@@ -1,12 +1,21 @@
-import cors from 'cors'
 import express from 'express'
 import { rootRouter } from '@/presentation/http/routes/index.js'
 import { ErrorCode } from './presentation/http/shared/constants.js'
+import { globalLimiter } from './presentation/http/middleware/rate-limit.middleware.js'
+import helmet from 'helmet'
+import { corsMiddleware } from './presentation/http/middleware/cors.middleware.js'
 
 const app = express()
 
-app.use(cors())
-app.use(express.json())
+app.disable('x-powered-by')
+
+app.use(corsMiddleware)
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false
+}))
+app.use(express.json({ limit: '100kb' }))
+app.use(globalLimiter)
 app.use(rootRouter)
 
 app.get('/', (_req, res) => {

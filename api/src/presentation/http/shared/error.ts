@@ -1,6 +1,7 @@
 import { ErrorCode } from './constants.js'
 import { AppError } from './types.js'
 import { AppErrorCode } from '@/application/shared/error-codes.js'
+import { logInternalError } from './logger.js'
 
 export const mapError = (error: unknown): AppError => {
   if (error instanceof Error) {
@@ -92,16 +93,20 @@ export const mapError = (error: unknown): AppError => {
       }
     }
 
+    logInternalError('mapError', error)
+
     return {
       code: ErrorCode.InternalError,
-      message: error.message,
+      message: 'Internal server error',
       status: 500
     }
   }
 
+  logInternalError('mapError', error)
+
   return {
     code: ErrorCode.UnknownError,
-    message: 'An unknown error occurred',
+    message: 'Internal server error',
     status: 500
   }
 }
