@@ -1,10 +1,10 @@
-import { render, screen } from "@/test/test-utils"
+import { render, screen } from "@testing-library/react"
 import { App } from "./App"
 
 describe("App", () => {
-  it("renders Orion Core title", () => {
+  it("renders login route when user is not authenticated", async () => {
     render(<App />)
 
-    expect(screen.getByText("Orion Core")).toBeInTheDocument()
+    expect(await screen.findByText("Login")).toBeInTheDocument()
   })
 })
