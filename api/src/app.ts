@@ -4,11 +4,13 @@ import { ErrorCode } from './presentation/http/shared/constants.js'
 import { globalLimiter } from './presentation/http/middleware/rate-limit.middleware.js'
 import helmet from 'helmet'
 import { corsMiddleware } from './presentation/http/middleware/cors.middleware.js'
+import cookieParser from 'cookie-parser'
 
 const app = express()
 
 app.disable('x-powered-by')
 
+app.use(cookieParser())
 app.use(corsMiddleware)
 app.use(helmet({
   contentSecurityPolicy: false,

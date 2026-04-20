@@ -15,8 +15,10 @@ import { logoutUserUseCase } from '../../../../application/use-cases/users/logou
 import { jwtService } from '@/infrastructure/services/jwt.service.js'
 import { hashRefreshToken } from '@/infrastructure/services/refresh-token-hash.service.js'
 import { sessionRepository } from '@/infrastructure/repositories/user/user.session.repository.js'
-import { loginSchema, logoutSchema, refreshSchema, userIdParamSchema } from '../../validators/auth/auth.validator.js'
+import { loginSchema, userIdParamSchema } from '../../validators/auth/auth.validator.js'
 import { ZodIssue } from 'zod'
+import { clearRefreshTokenCookie, getRefreshTokenFromCookie, setRefreshTokenCookie } from '../../shared/auth-cookie.js'
+import { AppErrorCode } from '@/application/shared/error-codes.js'
 
 const joinIssueMessages = (issues: ZodIssue[]) => {
   return issues.map((issue) => {
@@ -126,7 +128,19 @@ export const loginHandler = async (req: Request, res: Response) => {
       { email, password }
     )
 
-    return writeJSON(res, 200, result)
+    setRefreshTokenCookie(res, result.refreshToken, result.refreshTokenExpiresIn)
+
+    const safeResult = {
+      accessToken: result.accessToken,
+      tokenType: result.tokenType,
+      expiresIn: result.expiresIn,
+      expiresAt: result.expiresAt,
+      refreshTokenExpiresIn: result.refreshTokenExpiresIn,
+      refreshTokenExpiresAt: result.refreshTokenExpiresAt,
+      user: result.user
+    }
+
+    return writeJSON(res, 200, safeResult)
   } catch (error) {
     const appError = mapError(error)
     return writeError(res, appError)
@@ -135,12 +149,13 @@ export const loginHandler = async (req: Request, res: Response) => {
 
 export const refreshHandler = async (req: Request, res: Response) => {
   try {
-    const bodyResult = refreshSchema.safeParse(req.body)
-    if (!bodyResult.success) {
+    const refreshToken = getRefreshTokenFromCookie(req.cookies)
+
+    if (!refreshToken) {
       return writeError(res, {
-        code: ErrorCode.BadRequest,
-        message: joinIssueMessages(bodyResult.error.issues),
-        status: 400
+        code: ErrorCode.Unauthorized,
+        message: AppErrorCode.InvalidToken,
+        status: 401
       })
     }
 
@@ -148,10 +163,21 @@ export const refreshHandler = async (req: Request, res: Response) => {
       sessionRepository,
       jwtService,
       hashRefreshToken,
-      { refreshToken: bodyResult.data.refreshToken }
+      { refreshToken }
     )
 
-    return writeJSON(res, 200, result)
+    setRefreshTokenCookie(res, result.refreshToken, result.refreshTokenExpiresIn)
+
+    const safeResult = {
+      accessToken: result.accessToken,
+      tokenType: result.tokenType,
+      expiresIn: result.expiresIn,
+      expiresAt: result.expiresAt,
+      refreshTokenExpiresIn: result.refreshTokenExpiresIn,
+      refreshTokenExpiresAt: result.refreshTokenExpiresAt
+    }
+
+    return writeJSON(res, 200, safeResult)
   } catch (error) {
     const appError = mapError(error)
     return writeError(res, appError)
@@ -159,26 +185,26 @@ export const refreshHandler = async (req: Request, res: Response) => {
 }
 
 export const logoutHandler = async (req: Request, res: Response) => {
+  const refreshToken = getRefreshTokenFromCookie(req.cookies)
+
   try {
-    const bodyResult = logoutSchema.safeParse(req.body)
-    if (!bodyResult.success) {
-      return writeError(res, {
-        code: ErrorCode.BadRequest,
-        message: joinIssueMessages(bodyResult.error.issues),
-        status: 400
-      })
+    if (refreshToken) {
+      const result = await logoutUserUseCase(
+        sessionRepository,
+        jwtService,
+        hashRefreshToken,
+        { refreshToken }
+      )
+
+      return writeJSON(res, 200, result)
     }
 
-    const result = await logoutUserUseCase(
-      sessionRepository,
-      jwtService,
-      hashRefreshToken,
-      { refreshToken: bodyResult.data.refreshToken }
-    )
-
-    return writeJSON(res, 200, result)
+    return writeJSON(res, 200, { message: 'Logged out successfully' })
   } catch (error) {
     const appError = mapError(error)
     return writeError(res, appError)
+  } finally {
+    clearRefreshTokenCookie(res)
   }
 }
+

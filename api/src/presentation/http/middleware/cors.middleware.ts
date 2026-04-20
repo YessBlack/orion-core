@@ -22,7 +22,7 @@ const corsOptions: CorsOptions = {
 
     return callback(new Error('CORS origin not allowed'))
   },
-  credentials: false,
+  credentials: true,
   optionsSuccessStatus: 204
 }
 
