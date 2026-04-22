@@ -1,7 +1,8 @@
-import { TokenService } from '@/application/services/token.service.js'
-import { AppErrorCode } from '@/application/shared/error-codes.js'
+import { ITokenService } from '@/application/services/token.service.js'
 import { IUserRepository } from '@/domain/repositories/users/IUserRepository.js'
 import { ISessionRepository } from '@/domain/repositories/users/ISessionRepository.js'
+import { DomainErrorCode } from '@/domain/shared/DomainErrorCode.js'
+import { createDomainError } from '@/domain/shared/DomainError.js'
 
 type LoginInput = {
   email: string
@@ -11,21 +12,20 @@ type LoginInput = {
 export const loginUserUseCase = async (
   userRepo: IUserRepository,
   sessionRepo: ISessionRepository,
-  tokenService: TokenService,
-  hashRefreshToken: (token: string) => Promise<string>,
+  tokenService: ITokenService,
   input: LoginInput
 ) => {
   const email = input.email.trim().toLowerCase()
   const password = input.password.trim()
 
   if (!email || !password) {
-    throw new Error(AppErrorCode.InvalidCredentials)
+    throw createDomainError(DomainErrorCode.InvalidCredentials)
   }
 
-  const user = await userRepo.authenticate(email, password)
+  const user = await userRepo.login(email, password)
 
   if (!user || !user.id) {
-    throw new Error(AppErrorCode.InvalidCredentials)
+    throw createDomainError(DomainErrorCode.InvalidCredentials)
   }
 
   const accessToken = tokenService.generateAccessToken({
@@ -41,13 +41,12 @@ export const loginUserUseCase = async (
   })
 
   const accessTokenExpiresIn = tokenService.getAccessTokenTtlSeconds()
-  const refreshTokenHash = await hashRefreshToken(refreshToken)
   const refreshTokenExpiresIn = tokenService.getRefreshTokenTtlSeconds()
   const refreshExpiresAt = new Date(Date.now() + (refreshTokenExpiresIn * 1000))
 
   await sessionRepo.create({
     userId: user.id,
-    refreshTokenHash,
+    refreshTokenHash: refreshToken,
     expiresAt: refreshExpiresAt,
     revokedAt: null
   })

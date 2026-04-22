@@ -1,5 +1,6 @@
 export interface ITokenStorage {
   save(accessToken: string): Promise<void>
-  getAccessToken(): Promise<string | null>
+  getAccessToken(): string | null
   clear(): Promise<void>
+  isTokenExpired(token: string): boolean
 }

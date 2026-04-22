@@ -25,23 +25,6 @@ const getAuthDependencies = (): AuthDependencies => {
   return authDependencies
 }
 
-const isTokenExpired = (token: string): boolean => {
-  try {
-    const payloadBase64 = token.split(".")[1]
-    if (!payloadBase64) return true
-
-    const payloadJson = atob(payloadBase64.replace(/-/g, "+").replace(/_/g, "/"))
-    const payload = JSON.parse(payloadJson) as { exp?: number }
-
-    if (!payload.exp) return true
-
-    const nowInSeconds = Math.floor(Date.now() / 1000)
-    return payload.exp <= nowInSeconds
-  } catch {
-    return true
-  }
-}
-
 export const configureAuthDependencies = (deps: AuthDependencies): void => {
   authDependencies = deps
 }
@@ -52,22 +35,15 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
   initialized: false,
 
   initializeAuth: async () => {
-    if (get().initialized) {
-      return
-    }
+    if (get().initialized) return
 
     const deps = getAuthDependencies()
     set({ isLoading: true })
 
     try {
-      const accessToken = await deps.tokenStorage.getAccessToken()
+      const accessToken = deps.tokenStorage.getAccessToken()
 
-      if (accessToken && !isTokenExpired(accessToken)) {
-        set({ isAuthenticated: true })
-        return
-      }
-
-      if (accessToken && !isTokenExpired(accessToken)) {
+      if (accessToken && !deps.tokenStorage.isTokenExpired(accessToken)) {
         set({ isAuthenticated: true })
         return
       }

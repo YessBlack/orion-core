@@ -13,12 +13,11 @@ import { loginUserUseCase } from '../../../../application/use-cases/users/loginU
 import { refreshSessionUseCase } from '../../../../application/use-cases/users/refreshSessionUseCase.js'
 import { logoutUserUseCase } from '../../../../application/use-cases/users/logoutUserUseCase.js'
 import { jwtService } from '@/infrastructure/services/jwt.service.js'
-import { hashRefreshToken } from '@/infrastructure/services/refresh-token-hash.service.js'
 import { sessionRepository } from '@/infrastructure/repositories/user/user.session.repository.js'
 import { loginSchema, userIdParamSchema } from '../../validators/auth/auth.validator.js'
 import { ZodIssue } from 'zod'
 import { clearRefreshTokenCookie, getRefreshTokenFromCookie, setRefreshTokenCookie } from '../../shared/auth-cookie.js'
-import { AppErrorCode } from '@/application/shared/error-codes.js'
+import { AppErrorCode } from '@/application/shared/AppErrorCode.js'
 
 const joinIssueMessages = (issues: ZodIssue[]) => {
   return issues.map((issue) => {
@@ -79,7 +78,7 @@ export const updateUserHandler = async (req: Request, res: Response) => {
       })
     }
 
-    const user = await updateUserUseCase(userRepository, id, result.value)
+    const user = await updateUserUseCase(userRepository, { id, data: result.value })
     return writeJSON(res, 200, user)
   } catch (error) {
     const appError = mapError(error)
@@ -124,7 +123,6 @@ export const loginHandler = async (req: Request, res: Response) => {
       userRepository,
       sessionRepository,
       jwtService,
-      hashRefreshToken,
       { email, password }
     )
 
@@ -162,7 +160,6 @@ export const refreshHandler = async (req: Request, res: Response) => {
     const result = await refreshSessionUseCase(
       sessionRepository,
       jwtService,
-      hashRefreshToken,
       { refreshToken }
     )
 
@@ -192,7 +189,6 @@ export const logoutHandler = async (req: Request, res: Response) => {
       const result = await logoutUserUseCase(
         sessionRepository,
         jwtService,
-        hashRefreshToken,
         { refreshToken }
       )
 

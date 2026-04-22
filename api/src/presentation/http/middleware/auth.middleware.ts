@@ -1,4 +1,4 @@
-import { TokenService } from '@/application/services/token.service.js'
+import { ITokenService } from '@/application/services/token.service.js'
 import { AppModule } from '@/domain/entities/users/UserPermission.js'
 import { UserRole } from '@/domain/entities/users/UserRole.js'
 import { AccessLevel } from '@/domain/shared/AccessLevel.js'
@@ -17,7 +17,7 @@ declare global {
   }
 }
 
-export const createAuthMiddleware = (tokenService: TokenService) => {
+export const createAuthMiddleware = (tokenService: ITokenService) => {
   return (req: Request, res: Response, next: NextFunction) => {
     const authHeader = req.headers.authorization
 

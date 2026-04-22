@@ -6,9 +6,5 @@ export const loginUseCase = async (
   input: LoginInput,
   deps: AuthDependencies
 ): Promise<LoginResult> => {
-  const result = await deps.authRepository.login(input.email, input.password)
-
-  await deps.tokenStorage.save(result.accessToken)
-
-  return result
+  return await deps.authRepository.login(input.email, input.password)
 }

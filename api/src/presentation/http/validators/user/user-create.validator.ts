@@ -32,8 +32,9 @@ const createUserSchema = z.object({
   permissions: z.array(permissionSchema, {
     errorMap: () => ({ message: 'permissions is required and must be a valid permission list' })
   }),
-  isDefault: z.boolean({ errorMap: () => ({ message: 'isDefault is required and must be a boolean' }) }),
-  isActive: z.boolean({ errorMap: () => ({ message: 'isActive is required and must be a boolean' }) })
+  isActive: z.boolean({ errorMap: () => ({ message: 'isActive is required and must be a boolean' }) }),
+  password: z.string().min(8, 'password must be at least 8 characters'),
+  passwordConfirm: z.string().min(1, 'passwordConfirm is required')
 })
 
 export const validateUserCreatePayload = (
@@ -55,8 +56,9 @@ export const validateUserCreatePayload = (
     email: body.email.toLowerCase(),
     role: body.role,
     permissions: body.permissions as UserPermission[],
-    isDefault: body.isDefault,
-    isActive: body.isActive
+    isActive: body.isActive,
+    password: '',
+    passwordConfirm: ''
   }
 
   return {
