@@ -1,13 +1,18 @@
 import { User } from '@/domain/entities/users/User.js'
 import { CreateUserDTO, IUserRepository } from '@/domain/repositories/users/IUserRepository.js'
+import { createDomainError } from '@/domain/shared/DomainError.js'
+import { DomainErrorCode } from '@/domain/shared/DomainErrorCode.js'
 
 export const createUserUseCase = async (
   userRepo: IUserRepository,
   data: CreateUserDTO
 ): Promise<User> => {
-  const existing = await userRepo.findByEmail(data.email)
+  if (data.password !== data.passwordConfirm) {
+    throw createDomainError(DomainErrorCode.PasswordsDoNotMatch)
+  }
 
-  if (existing) throw new Error(`Ya existe un usuario con el email ${data.email}`)
+  const existing = await userRepo.findByEmail(data.email)
+  if (existing) throw createDomainError(DomainErrorCode.EmailAlreadyExists)
 
   return userRepo.create(data)
 }

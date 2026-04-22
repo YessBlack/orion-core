@@ -4,5 +4,6 @@ export enum ErrorCode {
   NotFound = 'NOT_FOUND',
   Conflict = 'CONFLICT',
   InternalError = 'INTERNAL_ERROR',
-  UnknownError = 'UNKNOWN_ERROR'
+  UnknownError = 'UNKNOWN_ERROR',
+  Forbidden = 'FORBIDDEN'
 }

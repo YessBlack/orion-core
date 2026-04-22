@@ -1,20 +1,18 @@
 import { useEffect } from "react"
+import { useAuthStore } from "@/features/auth/presentation/auth.store"
+import { configureAuthDependencies } from "@/features/auth/presentation/auth.store"
+import { authDependencies } from "@/app/dependencies/auth.dependencies"
 import { RouterProvider } from "react-router-dom"
-import { authDependencies } from "./app/dependencies/auth.dependencies"
 import { router } from "./app/router/router"
-import {
-  configureAuthDependencies,
-  useAuthStore,
-} from "./features/auth/presentation/auth.store"
-
-configureAuthDependencies(authDependencies)
 
 export const App = () => {
   const initializeAuth = useAuthStore((state) => state.initializeAuth)
 
   useEffect(() => {
-    void initializeAuth()
-  }, [initializeAuth])
+    configureAuthDependencies(authDependencies)
+    initializeAuth()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return <RouterProvider router={router} />
 }

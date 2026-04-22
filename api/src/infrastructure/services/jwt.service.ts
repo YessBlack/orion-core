@@ -1,8 +1,9 @@
-import { TokenService } from '@/application/services/token.service.js'
-import { AppErrorCode } from '@/application/shared/error-codes.js'
+import { ITokenService } from '@/application/services/token.service.js'
 import { UserPermission } from '@/domain/entities/users/UserPermission.js'
 import { UserRole } from '@/domain/entities/users/UserRole.js'
-import { randomUUID } from 'node:crypto'
+import { createAppError } from '@/application/shared/AppError.js'
+import { AppErrorCode } from '@/application/shared/AppErrorCode.js'
+import crypto, { randomUUID } from 'node:crypto'
 import jwt from 'jsonwebtoken'
 
 const readRequiredEnv = (name: string): string => {
@@ -25,22 +26,17 @@ const readPositiveIntEnv = (name: string, defaultValue: number): number => {
 
 const ACCESS_SECRET = readRequiredEnv('JWT_SECRET')
 const REFRESH_SECRET = readRequiredEnv('JWT_REFRESH_SECRET')
+const REFRESH_TOKEN_PEPPER = readRequiredEnv('REFRESH_TOKEN_PEPPER')
 
 if (ACCESS_SECRET === REFRESH_SECRET) {
   throw new Error('JWT_SECRET and JWT_REFRESH_SECRET must be different')
 }
 
-const ACCESS_TOKEN_TTL_SECONDS = readPositiveIntEnv(
-  'JWT_ACCESS_TOKEN_TTL_SECONDS',
-  60 * 60 * 2
-)
-const REFRESH_TOKEN_TTL_SECONDS = readPositiveIntEnv(
-  'JWT_REFRESH_TOKEN_TTL_SECONDS',
-  60 * 60 * 24 * 7
-)
+const ACCESS_TOKEN_TTL_SECONDS = readPositiveIntEnv('JWT_ACCESS_TOKEN_TTL_SECONDS', 60 * 60 * 2)
+const REFRESH_TOKEN_TTL_SECONDS = readPositiveIntEnv('JWT_REFRESH_TOKEN_TTL_SECONDS', 60 * 60 * 24 * 7)
 
-export const jwtService: TokenService = {
-  generateAccessToken (payload): string {
+export const jwtService: ITokenService = {
+  generateAccessToken (payload) {
     return jwt.sign(
       {
         sub: payload.userId,
@@ -53,7 +49,7 @@ export const jwtService: TokenService = {
     )
   },
 
-  generateRefreshToken (payload): string {
+  generateRefreshToken (payload) {
     return jwt.sign(
       {
         sub: payload.userId,
@@ -67,7 +63,7 @@ export const jwtService: TokenService = {
     )
   },
 
-  validateAccessToken (token: string) {
+  validateAccessToken (token) {
     try {
       const decoded = jwt.verify(token, ACCESS_SECRET) as {
         sub: string
@@ -77,7 +73,7 @@ export const jwtService: TokenService = {
       }
 
       if (!decoded.sub || !decoded.role || decoded.tokenType !== 'access') {
-        throw new Error(AppErrorCode.InvalidToken)
+        throw createAppError(AppErrorCode.InvalidToken)
       }
 
       return {
@@ -86,11 +82,11 @@ export const jwtService: TokenService = {
         permissions: decoded.permissions ?? []
       }
     } catch {
-      throw new Error(AppErrorCode.InvalidToken)
+      throw createAppError(AppErrorCode.InvalidToken)
     }
   },
 
-  validateRefreshToken (token: string) {
+  validateRefreshToken (token) {
     try {
       const decoded = jwt.verify(token, REFRESH_SECRET) as {
         sub: string
@@ -100,7 +96,7 @@ export const jwtService: TokenService = {
       }
 
       if (!decoded.sub || !decoded.role || decoded.tokenType !== 'refresh') {
-        throw new Error(AppErrorCode.InvalidToken)
+        throw createAppError(AppErrorCode.InvalidToken)
       }
 
       return {
@@ -109,7 +105,7 @@ export const jwtService: TokenService = {
         permissions: decoded.permissions ?? []
       }
     } catch {
-      throw new Error(AppErrorCode.InvalidToken)
+      throw createAppError(AppErrorCode.InvalidToken)
     }
   },
 
@@ -119,5 +115,12 @@ export const jwtService: TokenService = {
 
   getRefreshTokenTtlSeconds () {
     return REFRESH_TOKEN_TTL_SECONDS
+  },
+
+  async hashRefreshToken (token) {
+    return crypto
+      .createHash('sha256')
+      .update(token + '.' + REFRESH_TOKEN_PEPPER)
+      .digest('hex')
   }
 }
