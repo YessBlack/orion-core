@@ -43,6 +43,11 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
     try {
       const accessToken = deps.tokenStorage.getAccessToken()
 
+      if (!accessToken) {
+        set({ isAuthenticated: false })
+        return
+      }
+
       if (accessToken && !deps.tokenStorage.isTokenExpired(accessToken)) {
         set({ isAuthenticated: true })
         return
@@ -62,7 +67,8 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
 
   login: async (input: LoginInput) => {
     const deps = getAuthDependencies()
-    await loginUseCase(input, deps)
+    const result = await loginUseCase(input, deps)
+    await deps.tokenStorage.save(result.accessToken)
     set({ isAuthenticated: true })
   },
 

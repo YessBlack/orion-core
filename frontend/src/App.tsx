@@ -4,6 +4,7 @@ import { configureAuthDependencies } from "@/features/auth/presentation/auth.sto
 import { authDependencies } from "@/app/dependencies/auth.dependencies"
 import { RouterProvider } from "react-router-dom"
 import { router } from "./app/router/router"
+import { ThemeToggle } from "./shared/components/theme-toggle"
 
 export const App = () => {
   const initializeAuth = useAuthStore((state) => state.initializeAuth)
@@ -14,5 +15,12 @@ export const App = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  return <RouterProvider router={router} />
+  return (
+    <>
+      <div className="fixed right-4 top-4 z-50">
+      <ThemeToggle />
+      </div>
+      <RouterProvider router={router} />
+    </>
+  )
 }
