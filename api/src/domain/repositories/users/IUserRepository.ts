@@ -7,12 +7,6 @@ export type CreateUserDTO = Omit<User, 'id' | 'createdAt' | 'updatedAt' | 'isDef
 
 export type UpdateUserDTO = Partial<Omit<User, 'id' | 'createdAt' | 'updatedAt'>>
 
-export type ChangePasswordDTO = {
-  userId: string
-  newPassword: string
-  confirmPassword: string
-}
-
 export interface IUserRepository {
   findById(id: string): Promise<User | null>
   findByEmail(email: string): Promise<User | null>
@@ -21,5 +15,4 @@ export interface IUserRepository {
   create(data: CreateUserDTO): Promise<User>
   update(id: string, data: UpdateUserDTO): Promise<User>
   remove(id: string): Promise<void>
-  changePassword(data: ChangePasswordDTO): Promise<void>
 }

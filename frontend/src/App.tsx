@@ -12,13 +12,13 @@ export const App = () => {
   useEffect(() => {
     configureAuthDependencies(authDependencies)
     initializeAuth()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (
     <>
       <div className="fixed right-4 top-4 z-50">
-      <ThemeToggle />
+        <ThemeToggle />
       </div>
       <RouterProvider router={router} />
     </>
