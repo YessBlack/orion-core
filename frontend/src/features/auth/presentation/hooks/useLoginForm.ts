@@ -24,12 +24,12 @@ export const useLoginForm = () => {
       newErrors.email = "El email es requerido"
     }
 
-    if (!values.password) {
-      newErrors.password = "La contraseña es requerida"
-    }
-
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
       newErrors.email = "Debe ser un email válido"
+    }
+
+    if (!values.password) {
+      newErrors.password = "La contraseña es requerida"
     }
 
     if (values.password.length < 8) {

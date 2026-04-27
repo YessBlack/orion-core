@@ -4,7 +4,6 @@ import { Label } from "@/components/ui/label"
 import { useState } from "react"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { ArrowRightIcon, ViewIcon, ViewOffSlashIcon } from "@hugeicons/core-free-icons"
-import { Link } from "react-router-dom"
 import { useLoginForm } from "../../presentation/hooks/useLoginForm"
 
 export const LoginForm = () => {
@@ -103,15 +102,6 @@ export const LoginForm = () => {
           <HugeiconsIcon icon={ArrowRightIcon} size={16} />
         </Button>
       </form>
-
-      <div className="flex justify-center">
-        <Link
-          to="/forgot-password"
-          className="text-xs font-medium text-violet-600 transition-colors hover:text-violet-500 hover:underline dark:text-[#A78BFA] dark:hover:text-[#C4B5FD]"
-        >
-          Recuperar contraseña
-        </Link>
-      </div>
     </div>
   )
 }

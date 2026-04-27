@@ -108,3 +108,21 @@ Coverage is configured in `vite.config.ts` with thresholds:
 - statements: 70%
 - functions: 70%
 - branches: 60%
+
+## End-to-End Testing (Playwright)
+
+This project uses Playwright for E2E tests.
+
+### Commands
+
+- `npm run test:e2e`: run E2E suite headless
+- `npm run test:e2e:ui`: open Playwright UI mode
+- `npm run test:e2e:headed`: run tests in headed mode
+- `npm run test:e2e:debug`: debug a test step by step
+- `npm run test:e2e:install`: install browser binaries (first run)
+
+### Structure
+
+- Config: `playwright.config.ts`
+- Tests: `e2e/**/*.spec.ts`
+- Starter smoke test: `e2e/auth-login.spec.ts`

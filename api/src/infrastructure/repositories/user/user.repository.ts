@@ -1,4 +1,4 @@
-import { ChangePasswordDTO, CreateUserDTO, IUserRepository, UpdateUserDTO } from '@/domain/repositories/users/IUserRepository.js'
+import { CreateUserDTO, IUserRepository, UpdateUserDTO } from '@/domain/repositories/users/IUserRepository.js'
 import { POCKETBASE_URL, pb } from '../../database/database.js'
 import { mapToUser } from '../../mappers/user/user.mapper.js'
 import PocketBase from 'pocketbase'
@@ -88,17 +88,6 @@ const remove = async (id: string) => {
   }
 }
 
-const changePassword = async (data: ChangePasswordDTO) => {
-  try {
-    await pb.collection(USER_COLLECTION).update(data.userId, {
-      password: data.newPassword,
-      passwordConfirm: data.confirmPassword
-    })
-  } catch {
-    throw createInfrastructureError(InfrastructureErrorCode.FailedToChangePassword)
-  }
-}
-
 export const userRepository: IUserRepository = {
   list,
   findById,
@@ -106,6 +95,5 @@ export const userRepository: IUserRepository = {
   login,
   create,
   update,
-  remove,
-  changePassword
+  remove
 }
